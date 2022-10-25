@@ -16,9 +16,9 @@ DIM_INPUT = 1
 BATCH_SIZE = 32
 
 #Taille Latent
-LATENT_SIZE = 20
+LATENT_SIZE = 10
 #Nb epochs 
-Nepochs = 10
+Nepochs = 1000
 
 PATH = "../../data/"
 
@@ -34,29 +34,44 @@ print(len(data_train))
 #  TODO:  Question 2 : prédiction de la ville correspondant à une séquence
 
 net = RNN(DIM_INPUT, LATENT_SIZE, CLASSES)
-optimizer = optim.Adam(net.parameters(), lr=0.01)
+optimizer = optim.Adam(net.parameters(), lr=0.001)
 
 writer = SummaryWriter()
 Loss = nn.CrossEntropyLoss()
 
-h = torch.zeros((2,LATENT_SIZE))
-
-
 for epoch in range(Nepochs):
-    total=0.
+    total = []
     for x,y in data_train:
-        print(x.size())
-        print(h.size())
-        print(y.size())
+        h = torch.zeros((x.size()[0],LATENT_SIZE))
+        x.transpose_(0,1)
+
         ##  TODO:  Calcul du forward (loss)
         output = net.forward(x,h)
+        output = net.decode(output[-1]).softmax(dim=1)
         loss = Loss(output,y)
-        # Sortie directe
-        #print(f"Itérations {n_iter}: loss {loss}")
-        writer.add_scalar('Loss/train', loss.detach().numpy(), n_iter)
+
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
-        total+=loss
+        total.append(loss.detach().numpy())
 
-    print(epoch,total)
+    writer.add_scalar('Loss/train', np.array(total).mean(), epoch)
+    print(epoch,np.array(total).mean())
+
+
+acc = []
+
+for x,y in data_test:
+    h = torch.zeros((x.size()[0],LATENT_SIZE))
+    x.transpose_(0,1)
+    output = torch.argmax(net.decode(net.forward(x,h)[-1]).softmax(dim=1), dim=1)
+
+    y_hat = output.detach().numpy()
+    y_tar = y.detach().numpy()
+    acc.append(np.where(y_hat == y_tar, 1, 0).sum()/np.size(y_tar))
+    
+
+accuracy = np.mean(acc)
+print(accuracy)
+    
+    

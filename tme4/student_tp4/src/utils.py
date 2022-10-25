@@ -13,11 +13,11 @@ class RNN(nn.Module):
         self.Lin1 = nn.Linear(dim, latent)
         self.Lin2 = nn.Linear(latent, latent) 
         self.Lin3 = nn.Linear(latent, output)
+        self.tanh = nn.Tanh()
 
     def one_step(self, x, h):
         tmp = self.Lin1(x) + self.Lin2(h)
-        print("tmp size : ", tmp.size())
-        y = nn.Tanh(tmp)
+        y = self.tanh(tmp)
         return y    
 
     def forward(self, x, h):
